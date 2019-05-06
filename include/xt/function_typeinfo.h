@@ -48,13 +48,41 @@ struct details<R (Args...)> : function_details<R, Args...> {};
 template <typename R, typename... Args>
 struct details<R (Args... , ...)> : function_details<R, Args...> {};
 
-template <typename R, typename C, typename... Args>
-struct details<std::function<R (C::*)(Args...)> > : method_details<R, C, Args...> {};
+template <typename T>
+struct details<const T> : details<T> {};
 
-template <typename R, typename C, typename... Args>
-struct details<std::function<R (C::*)(Args...) const> > : method_details<R, C, Args...> {};
+template <typename T>
+struct details<volatile T> : details<T> {};
 
-template <typename R, typename... Args>
-struct details<std::function<R (Args...)> > : function_details<R, Args...> {};
+template <typename T>
+struct details<T&> : details<T> {};
+
+template <typename T>
+struct details<T*> : details<T> {};
+
+class ___test;
+
+static_assert(std::is_same<details<void (___test::*)()>::return_t, void>::value);
+static_assert(std::is_same<details<void (___test::*)() const>::return_t, void>::value);
+static_assert(std::is_same<details<void (___test::* const)() const>::return_t, void>::value);
+static_assert(std::is_same<details<void (___test::* const)()>::return_t, void>::value);
+static_assert(std::is_same<details<void (___test::* volatile)() const>::return_t, void>::value);
+static_assert(std::is_same<details<void (___test::* volatile)()>::return_t, void>::value);
+static_assert(std::is_same<details<void (___test::*)() const>::return_t, void>::value);
+
+static_assert(std::is_same<details<void (___test::*&)()>::return_t, void>::value);
+static_assert(std::is_same<details<void (___test::*&)() const>::return_t, void>::value);
+static_assert(std::is_same<details<void (___test::* const &)() const>::return_t, void>::value);
+static_assert(std::is_same<details<void (___test::* volatile &)() const>::return_t, void>::value);
+static_assert(std::is_same<details<void (___test::*&)() const>::return_t, void>::value);
+static_assert(std::is_same<details<void (___test::*&)()>::return_t, void>::value);
+
+static_assert(std::is_same<details<void (*)()>::return_t, void>::value);
+static_assert(std::is_same<details<void (* const)()>::return_t, void>::value);
+static_assert(std::is_same<details<void (* volatile)()>::return_t, void>::value);
+
+static_assert(std::is_same<details<void (*&)()>::return_t, void>::value);
+static_assert(std::is_same<details<void (* const &)()>::return_t, void>::value);
+static_assert(std::is_same<details<void (* volatile &)()>::return_t, void>::value);
 
 } // namespace xt
