@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include <tuple>
+
 namespace xt {
 
 template <typename R, typename... Args>
@@ -84,5 +86,75 @@ static_assert(std::is_same<details<void (* volatile)()>::return_t, void>::value)
 static_assert(std::is_same<details<void (*&)()>::return_t, void>::value);
 static_assert(std::is_same<details<void (* const &)()>::return_t, void>::value);
 static_assert(std::is_same<details<void (* volatile &)()>::return_t, void>::value);
+
+template <typename T>
+struct details : details<decltype(&T::operator())> {};
+
+class ___test { ___test() { auto l = []{};
+    static_assert(std::is_same<details<decltype(l)>::return_t, void>::value);
+    static_assert(std::is_same<details<decltype(&l)>::return_t, void>::value);
+    static_assert(std::is_same<details<decltype(l)&>::return_t, void>::value);
+    static_assert(std::is_same<details<const decltype(l)&>::return_t, void>::value);
+    static_assert(std::is_same<details<const decltype(l)*>::return_t, void>::value);
+}};
+
+/**
+ * Returns the number of the function arguments.
+ */
+template <typename T>
+struct arity {
+    enum { value = details<T>::arity };
+};
+
+static_assert(arity<void (int, int)>::value == 2);
+static_assert(arity<void (int, int, int)>::value == 3);
+static_assert(arity<void (int, int, int, ...)>::value == 3);
+
+/**
+ * Returns the type of the function concrete argument.
+ */
+template <typename T, size_t i>
+using arg_t = typename details<T>::template arg<i>::type;
+
+static_assert(std::is_same<arg_t<void (int, float), 0>, int>::value);
+static_assert(std::is_same<arg_t<void (int, float), 1>, float>::value);
+static_assert(std::is_same<arg_t<void (const int, float), 0>, int>::value);
+static_assert(std::is_same<arg_t<void (int, const float), 1>, float>::value);
+static_assert(std::is_same<arg_t<void (int*, float), 0>, int*>::value);
+static_assert(std::is_same<arg_t<void (int, const float*), 1>, const float*>::value);
+static_assert(std::is_same<arg_t<void (int* const, float), 0>, int* >::value);
+static_assert(std::is_same<arg_t<void (int, const float* const), 1>, const float*>::value);
+static_assert(std::is_same<arg_t<void (int&, float), 0>, int&>::value);
+static_assert(std::is_same<arg_t<void (int, const float&), 1>, const float&>::value);
+
+/**
+ * Returns the return type of a function.
+ */
+template <typename T>
+using return_t = typename details<T>::return_t;
+
+static_assert(std::is_same<return_t<int ()>, int>::value);
+static_assert(std::is_same<return_t<float ()>, float>::value);
+static_assert(std::is_same<return_t<int& ()>, int&>::value);
+static_assert(std::is_same<return_t<const int& ()>, const int&>::value);
+static_assert(std::is_same<return_t<const int* ()>, const int*>::value);
+static_assert(std::is_same<return_t<const int* const ()>, const int* const>::value);
+
+/**
+ * Returns the class type of a member function.
+ */
+template <typename T>
+using class_t = typename details<T>::class_t;
+
+static_assert(std::is_same<class_t<void (___test::*) ()>, ___test>::value);
+
+/**
+ * Returns true if a function has no return value.
+ */
+template <typename F>
+struct is_void : std::is_same<return_t<F>, void> { };
+
+static_assert(is_void<void ()>::value);
+static_assert(!is_void<int ()>::value);
 
 } // namespace xt
