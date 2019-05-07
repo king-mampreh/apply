@@ -4,6 +4,7 @@
 #pragma once
 
 #include <tuple>
+#include <functional>
 
 namespace xt {
 
@@ -24,25 +25,39 @@ struct function_details {
     using arg_t = typename arg<i>::type;
 };
 
-template <typename R, typename C, typename... Args>
-struct method_details : function_details<R, Args...>{
+template <bool callable, typename R, typename C, typename... Args>
+struct method_details {
     using class_t = C;
+
+    using return_t = R;
+
+    enum { arity = sizeof...(Args) + !callable };
+
+    using args_t = typename std::conditional<!callable, std::tuple<class_t, Args...>, std::tuple<Args...> >::type;
+
+    template <size_t i>
+    struct arg {
+        using type = typename std::tuple_element<i, args_t>::type;
+    };
+
+    template <size_t i>
+    using arg_t = typename arg<i>::type;
 };
 
-template <typename T>
+template <typename T, bool callable = false>
 struct details;
 
-template <typename R, typename C, typename... Args>
-struct details<R (C::*)(Args...)> : method_details<R, C, Args...> {};
+template <bool c, typename R, typename C, typename... Args>
+struct details<R (C::*)(Args...), c> : method_details<c, R, C, Args...> {};
 
-template <typename R, typename C, typename... Args>
-struct details<R (C::*)(Args...) const> : method_details<R, C, Args...> {};
+template <bool c, typename R, typename C, typename... Args>
+struct details<R (C::*)(Args...) const, c> : method_details<c, R, C, Args...> {};
 
-template <typename R, typename C, typename... Args>
-struct details<R (C::*)(Args..., ...)> : method_details<R, C, Args...> {};
+template <bool c, typename R, typename C, typename... Args>
+struct details<R (C::*)(Args..., ...), c> : method_details<c, R, C, Args...> {};
 
-template <typename R, typename C, typename... Args>
-struct details<R (C::*)(Args..., ...) const> : method_details<R, C, Args...> {};
+template <bool c, typename R, typename C, typename... Args>
+struct details<R (C::*)(Args..., ...) const, c> : method_details<c, R, C, Args...> {};
 
 template <typename R, typename... Args>
 struct details<R (Args...)> : function_details<R, Args...> {};
@@ -87,8 +102,8 @@ static_assert(std::is_same<details<void (*&)()>::return_t, void>::value);
 static_assert(std::is_same<details<void (* const &)()>::return_t, void>::value);
 static_assert(std::is_same<details<void (* volatile &)()>::return_t, void>::value);
 
-template <typename T>
-struct details : details<decltype(&T::operator())> {};
+template <typename T, bool callable>
+struct details : details<decltype(&T::operator()), true> {};
 
 class ___test { ___test() { auto l = []{};
     static_assert(std::is_same<details<decltype(l)>::return_t, void>::value);
@@ -96,7 +111,7 @@ class ___test { ___test() { auto l = []{};
     static_assert(std::is_same<details<decltype(l)&>::return_t, void>::value);
     static_assert(std::is_same<details<const decltype(l)&>::return_t, void>::value);
     static_assert(std::is_same<details<const decltype(l)*>::return_t, void>::value);
-}};
+}; ~___test(); };
 
 /**
  * Returns the number of the function arguments.
@@ -109,6 +124,23 @@ struct arity {
 static_assert(arity<void (int, int)>::value == 2);
 static_assert(arity<void (int, int, int)>::value == 3);
 static_assert(arity<void (int, int, int, ...)>::value == 3);
+
+static_assert(arity<void (___test::*)()>::value == 1);
+static_assert(arity<void (___test::*)(int)>::value == 2);
+static_assert(arity<void (___test::*)(int, int)>::value == 3);
+static_assert(arity<void (___test::*)(int, int, int)>::value == 4);
+
+static_assert(arity<std::function<void ()>>::value == 0);
+static_assert(arity<std::function<void (int)>>::value == 1);
+static_assert(arity<std::function<void (int, int)>>::value == 2);
+static_assert(arity<std::function<void (int, int, int)>>::value == 3);
+
+___test::~___test() { auto l0 = []{}; auto l1 = [&](int){}; auto l2 = [=](int,int){}; auto l3 = [this](int,int,int){};
+    static_assert(arity<decltype(l0)>::value == 0);
+    static_assert(arity<decltype(l1)>::value == 1);
+    static_assert(arity<decltype(l2)>::value == 2);
+    static_assert(arity<decltype(l3)>::value == 3);
+}
 
 /**
  * Returns the type of the function concrete argument.
