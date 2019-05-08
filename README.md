@@ -4,6 +4,31 @@ The C++ Apply library is a King Mamphreh project to extend functionality of func
 ## Synopsis
 
 ```C++
+#include <xt/apply.h>
+
+#include <iostream>
+#include <sstream>
+
+const auto sum3 = [](int a, int b, int c) { return a + b + c; };
+
+int main() {
+    do {
+        std::cout << "Enter three numbers: ";
+        try {
+            std::ostringstream os;
+            os << "Result: " << xt::apply_i(sum3, std::istream_iterator<int>(std::cin));
+               
+            std::cout << os.str() << std::endl;
+        } catch (std::exception& e) {
+            std::cout << e.what() << std::endl;
+        }
+    } while(true);
+    
+    return 0;
+}
+```
+
+```C++
 
 #include <xt/apply.h>
 
