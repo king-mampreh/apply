@@ -37,8 +37,8 @@ template <typename C>
 struct apply_impl {
 
     template <typename F, typename Iter, std::size_t... I>
-    static decltype(auto) _(F&& f, Iter i, std::index_sequence<I...>, std::forward_iterator_tag) {
-        return std::apply(std::forward<F>(f), std::tuple<C*, arg_t<F, I>...>{std::any_cast<C*>(*(i++)), convert<arg_t<F, I>>(((void)I, *(i++)))...});
+    static decltype(auto) _(F&& f, Iter i, std::index_sequence<I...>, std::input_iterator_tag) {
+        return std::apply(std::forward<F>(f), std::tuple<C*, arg_t<F, I>...>{std::any_cast<C*>(*(i)), convert<arg_t<F, I>>(((void)I, *(++i)))...});
     }
 
     template <typename F, typename Iter, std::size_t... I>
@@ -51,8 +51,8 @@ template <>
 struct apply_impl<void> {
 
     template <typename F, typename Iter, std::size_t... I>
-    static decltype(auto) _(F&& f, Iter i, std::index_sequence<I...>, std::forward_iterator_tag) {
-        return std::apply(std::forward<F>(f), std::tuple<arg_t<F, I>...>{convert<arg_t<F, I>>(((void)I, *(i++)))...});
+    static decltype(auto) _(F&& f, Iter i, std::index_sequence<I...>, std::input_iterator_tag) {
+        return std::apply(std::forward<F>(f), std::tuple<arg_t<F, I>...>{convert<arg_t<F, I>>(*(I ? ++i : i))...});
     }
 
     template <typename F, typename Iter, std::size_t... I>
