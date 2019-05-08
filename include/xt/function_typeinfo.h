@@ -8,32 +8,19 @@
 
 namespace xt {
 
-template <typename R, typename... Args>
-struct function_details {
-    using return_t = R;
-
-    enum { arity = sizeof...(Args) };
-
-    using args_t = std::tuple<Args...>;
-
-    template <size_t i>
-    struct arg {
-        using type = typename std::tuple_element<i, args_t>::type;
-    };
-
-    template <size_t i>
-    using arg_t = typename arg<i>::type;
-};
-
 template <bool callable, typename R, typename C, typename... Args>
 struct method_details {
-    using class_t = C;
+    using class_t = typename std::conditional<callable, void, C>::type;
 
     using return_t = R;
 
-    enum { arity = sizeof...(Args) + !callable };
+    enum {
+        arity = sizeof...(Args),
+        xarity = sizeof...(Args) + !callable
+    };
 
-    using args_t = typename std::conditional<!callable, std::tuple<class_t, Args...>, std::tuple<Args...> >::type;
+    using args_t = std::tuple<Args...>;
+    using xargs_t = typename std::conditional<callable, args_t, std::tuple<class_t, Args...>>::type;
 
     template <size_t i>
     struct arg {
@@ -41,8 +28,19 @@ struct method_details {
     };
 
     template <size_t i>
+    struct xarg {
+        using type = typename std::tuple_element<i, xargs_t>::type;
+    };
+
+    template <size_t i>
     using arg_t = typename arg<i>::type;
+
+    template <size_t i>
+    using xarg_t = typename xarg<i>::type;
 };
+
+template <typename R, typename... Args>
+struct function_details : method_details<true, R, void, Args...> {};
 
 template <typename T, bool callable = false>
 struct details;
@@ -111,7 +109,7 @@ class ___test { ___test() { auto l = []{};
     static_assert(std::is_same<details<decltype(l)&>::return_t, void>::value);
     static_assert(std::is_same<details<const decltype(l)&>::return_t, void>::value);
     static_assert(std::is_same<details<const decltype(l)*>::return_t, void>::value);
-}; ~___test(); };
+};};
 
 /**
  * Returns the number of the function arguments.
@@ -121,32 +119,45 @@ struct arity {
     enum { value = details<T>::arity };
 };
 
+template <typename T>
+struct xarity {
+    enum { value = details<T>::xarity };
+};
+
 static_assert(arity<void (int, int)>::value == 2);
 static_assert(arity<void (int, int, int)>::value == 3);
 static_assert(arity<void (int, int, int, ...)>::value == 3);
 
-static_assert(arity<void (___test::*)()>::value == 1);
-static_assert(arity<void (___test::*)(int)>::value == 2);
-static_assert(arity<void (___test::*)(int, int)>::value == 3);
-static_assert(arity<void (___test::*)(int, int, int)>::value == 4);
+static_assert(arity<void (___test::*)()>::value == 0);
+static_assert(arity<void (___test::*)(int)>::value == 1);
+static_assert(arity<void (___test::*)(int, int)>::value == 2);
+static_assert(arity<void (___test::*)(int, int, int)>::value == 3);
+
+static_assert(xarity<void (___test::*)()>::value == 1);
+static_assert(xarity<void (___test::*)(int)>::value == 2);
+static_assert(xarity<void (___test::*)(int, int)>::value == 3);
+static_assert(xarity<void (___test::*)(int, int, int)>::value == 4);
 
 static_assert(arity<std::function<void ()>>::value == 0);
 static_assert(arity<std::function<void (int)>>::value == 1);
 static_assert(arity<std::function<void (int, int)>>::value == 2);
 static_assert(arity<std::function<void (int, int, int)>>::value == 3);
 
-___test::~___test() { auto l0 = []{}; auto l1 = [&](int){}; auto l2 = [=](int,int){}; auto l3 = [this](int,int,int){};
+class ___test1 { ___test1() { auto l0 = []{}; auto l1 = [&](int){}; auto l2 = [=](int,int){}; auto l3 = [this](int,int,int){};
     static_assert(arity<decltype(l0)>::value == 0);
     static_assert(arity<decltype(l1)>::value == 1);
     static_assert(arity<decltype(l2)>::value == 2);
     static_assert(arity<decltype(l3)>::value == 3);
-}
+};};
 
 /**
  * Returns the type of the function concrete argument.
  */
 template <typename T, size_t i>
-using arg_t = typename details<T>::template arg<i>::type;
+using arg_t = typename details<T>::template arg_t<i>;
+
+template <typename T, size_t i>
+using xarg_t = typename details<T>::template xarg_t<i>;
 
 static_assert(std::is_same<arg_t<void (int, float), 0>, int>::value);
 static_assert(std::is_same<arg_t<void (int, float), 1>, float>::value);
