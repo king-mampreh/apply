@@ -20,7 +20,7 @@ struct method_details {
     };
 
     using args_t = std::tuple<Args...>;
-    using xargs_t = typename std::conditional<callable, args_t, std::tuple<class_t, Args...>>::type;
+    using xargs_t = typename std::conditional<callable, args_t, std::tuple<std::add_pointer_t<class_t>, Args...>>::type;
 
     template <size_t i>
     struct arg {
@@ -77,39 +77,39 @@ struct details<T*> : details<T> {};
 
 class ___test;
 
-static_assert(std::is_same<details<void (___test::*)()>::return_t, void>::value);
-static_assert(std::is_same<details<void (___test::*)() const>::return_t, void>::value);
-static_assert(std::is_same<details<void (___test::* const)() const>::return_t, void>::value);
-static_assert(std::is_same<details<void (___test::* const)()>::return_t, void>::value);
-static_assert(std::is_same<details<void (___test::* volatile)() const>::return_t, void>::value);
-static_assert(std::is_same<details<void (___test::* volatile)()>::return_t, void>::value);
-static_assert(std::is_same<details<void (___test::*)() const>::return_t, void>::value);
+static_assert(std::is_same_v<details<void (___test::*)()>::return_t, void>);
+static_assert(std::is_same_v<details<void (___test::*)() const>::return_t, void>);
+static_assert(std::is_same_v<details<void (___test::* const)() const>::return_t, void>);
+static_assert(std::is_same_v<details<void (___test::* const)()>::return_t, void>);
+static_assert(std::is_same_v<details<void (___test::* volatile)() const>::return_t, void>);
+static_assert(std::is_same_v<details<void (___test::* volatile)()>::return_t, void>);
+static_assert(std::is_same_v<details<void (___test::*)() const>::return_t, void>);
 
-static_assert(std::is_same<details<void (___test::*&)()>::return_t, void>::value);
-static_assert(std::is_same<details<void (___test::*&)() const>::return_t, void>::value);
-static_assert(std::is_same<details<void (___test::* const &)() const>::return_t, void>::value);
-static_assert(std::is_same<details<void (___test::* volatile &)() const>::return_t, void>::value);
-static_assert(std::is_same<details<void (___test::*&)() const>::return_t, void>::value);
-static_assert(std::is_same<details<void (___test::*&)()>::return_t, void>::value);
+static_assert(std::is_same_v<details<void (___test::*&)()>::return_t, void>);
+static_assert(std::is_same_v<details<void (___test::*&)() const>::return_t, void>);
+static_assert(std::is_same_v<details<void (___test::* const &)() const>::return_t, void>);
+static_assert(std::is_same_v<details<void (___test::* volatile &)() const>::return_t, void>);
+static_assert(std::is_same_v<details<void (___test::*&)() const>::return_t, void>);
+static_assert(std::is_same_v<details<void (___test::*&)()>::return_t, void>);
 
-static_assert(std::is_same<details<void (*)()>::return_t, void>::value);
-static_assert(std::is_same<details<void (* const)()>::return_t, void>::value);
-static_assert(std::is_same<details<void (* volatile)()>::return_t, void>::value);
+static_assert(std::is_same_v<details<void (*)()>::return_t, void>);
+static_assert(std::is_same_v<details<void (* const)()>::return_t, void>);
+static_assert(std::is_same_v<details<void (* volatile)()>::return_t, void>);
 
-static_assert(std::is_same<details<void (*&)()>::return_t, void>::value);
-static_assert(std::is_same<details<void (* const &)()>::return_t, void>::value);
-static_assert(std::is_same<details<void (* volatile &)()>::return_t, void>::value);
+static_assert(std::is_same_v<details<void (*&)()>::return_t, void>);
+static_assert(std::is_same_v<details<void (* const &)()>::return_t, void>);
+static_assert(std::is_same_v<details<void (* volatile &)()>::return_t, void>);
 
 template <typename T, bool callable>
 struct details : details<decltype(&T::operator()), true> {};
 
 class ___test { ___test() { auto l = []{};
-    static_assert(std::is_same<details<decltype(l)>::return_t, void>::value);
-    static_assert(std::is_same<details<decltype(&l)>::return_t, void>::value);
-    static_assert(std::is_same<details<decltype(l)&>::return_t, void>::value);
-    static_assert(std::is_same<details<const decltype(l)&>::return_t, void>::value);
-    static_assert(std::is_same<details<const decltype(l)*>::return_t, void>::value);
-};};
+    static_assert(std::is_same_v<details<decltype(l)>::return_t, void>);
+    static_assert(std::is_same_v<details<decltype(&l)>::return_t, void>);
+    static_assert(std::is_same_v<details<decltype(l)&>::return_t, void>);
+    static_assert(std::is_same_v<details<const decltype(l)&>::return_t, void>);
+    static_assert(std::is_same_v<details<const decltype(l)*>::return_t, void>);
+}; };
 
 /**
  * Returns the number of the function arguments.
@@ -159,16 +159,16 @@ using arg_t = typename details<T>::template arg_t<i>;
 template <typename T, size_t i>
 using xarg_t = typename details<T>::template xarg_t<i>;
 
-static_assert(std::is_same<arg_t<void (int, float), 0>, int>::value);
-static_assert(std::is_same<arg_t<void (int, float), 1>, float>::value);
-static_assert(std::is_same<arg_t<void (const int, float), 0>, int>::value);
-static_assert(std::is_same<arg_t<void (int, const float), 1>, float>::value);
-static_assert(std::is_same<arg_t<void (int*, float), 0>, int*>::value);
-static_assert(std::is_same<arg_t<void (int, const float*), 1>, const float*>::value);
-static_assert(std::is_same<arg_t<void (int* const, float), 0>, int* >::value);
-static_assert(std::is_same<arg_t<void (int, const float* const), 1>, const float*>::value);
-static_assert(std::is_same<arg_t<void (int&, float), 0>, int&>::value);
-static_assert(std::is_same<arg_t<void (int, const float&), 1>, const float&>::value);
+static_assert(std::is_same_v<arg_t<void (int, float), 0>, int>);
+static_assert(std::is_same_v<arg_t<void (int, float), 1>, float>);
+static_assert(std::is_same_v<arg_t<void (const int, float), 0>, int>);
+static_assert(std::is_same_v<arg_t<void (int, const float), 1>, float>);
+static_assert(std::is_same_v<arg_t<void (int*, float), 0>, int*>);
+static_assert(std::is_same_v<arg_t<void (int, const float*), 1>, const float*>);
+static_assert(std::is_same_v<arg_t<void (int* const, float), 0>, int* >);
+static_assert(std::is_same_v<arg_t<void (int, const float* const), 1>, const float*>);
+static_assert(std::is_same_v<arg_t<void (int&, float), 0>, int&>);
+static_assert(std::is_same_v<arg_t<void (int, const float&), 1>, const float&>);
 
 /**
  * Returns the return type of a function.
@@ -176,12 +176,12 @@ static_assert(std::is_same<arg_t<void (int, const float&), 1>, const float&>::va
 template <typename T>
 using return_t = typename details<T>::return_t;
 
-static_assert(std::is_same<return_t<int ()>, int>::value);
-static_assert(std::is_same<return_t<float ()>, float>::value);
-static_assert(std::is_same<return_t<int& ()>, int&>::value);
-static_assert(std::is_same<return_t<const int& ()>, const int&>::value);
-static_assert(std::is_same<return_t<const int* ()>, const int*>::value);
-static_assert(std::is_same<return_t<const int* const ()>, const int* const>::value);
+static_assert(std::is_same_v<return_t<int ()>, int>);
+static_assert(std::is_same_v<return_t<float ()>, float>);
+static_assert(std::is_same_v<return_t<int& ()>, int&>);
+static_assert(std::is_same_v<return_t<const int& ()>, const int&>);
+static_assert(std::is_same_v<return_t<const int* ()>, const int*>);
+static_assert(std::is_same_v<return_t<const int* const ()>, const int* const>);
 
 /**
  * Returns the class type of a member function.
@@ -189,7 +189,7 @@ static_assert(std::is_same<return_t<const int* const ()>, const int* const>::val
 template <typename T>
 using class_t = typename details<T>::class_t;
 
-static_assert(std::is_same<class_t<void (___test::*) ()>, ___test>::value);
+static_assert(std::is_same_v<class_t<void (___test::*) ()>, ___test>);
 
 /**
  * Returns true if a function has no return value.
