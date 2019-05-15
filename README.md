@@ -1,4 +1,6 @@
 ## Welcome!
+[![Language](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B#Standardization) [![Language](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
+
 The C++ Apply library is a King Mamphreh project to extend functionality of function std::apply to enable to work with std::vector, std::list, std::set, ... 
 
 ## Synopsis
