@@ -143,7 +143,7 @@ static_assert(arity<std::function<void (int)>>::value == 1);
 static_assert(arity<std::function<void (int, int)>>::value == 2);
 static_assert(arity<std::function<void (int, int, int)>>::value == 3);
 
-class ___test1 { ___test1() { auto l0 = []{}; auto l1 = [&](int){}; auto l2 = [=](int,int){}; auto l3 = [this](int,int,int){};
+class ___test1 { ___test1() { auto l0 = []{}; auto l1 = [&](int){}; auto l2 = [=](int,int){}; auto l3 = [this](int,int,int){ (void)this; };
     static_assert(arity<decltype(l0)>::value == 0);
     static_assert(arity<decltype(l1)>::value == 1);
     static_assert(arity<decltype(l2)>::value == 2);
